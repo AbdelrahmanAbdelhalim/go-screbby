@@ -5,23 +5,23 @@ package board
 type StateInfo struct {
 
 	//Copied when making a move
-	Material_key    Key
-	Pawn_Key        Key
-	NonPawnMaterial [COLOR_NB]Value
+	material_key    Key
+	pawn_Key        Key
+	nonPawnMaterial [COLOR_NB]Value
 	CastlingRights  int32
-	Rule50          int32
-	PliesFromNull   int32
-	EqSquare        Square
+	rule50          int32
+	pliesFromNull   int32
+	EpSquare        Square
 
 	//Not Copied When making a move (Will be recomputed)
-	Key             Key
-	ChckersBB       BitBoard
+	key             Key
+	checkersBB      BitBoard
 	Previous        *StateInfo
-	BlockersForKing [COLOR_NB]BitBoard
-	Pinners         [COLOR_NB]BitBoard
-	CheckSquares    [PIECE_TYPE_NB]BitBoard
-	CapturedPiece   Piece
-	Repition        int32
+	blockersForKing [COLOR_NB]BitBoard
+	pinners         [COLOR_NB]BitBoard
+	checkSquares    [PIECE_TYPE_NB]BitBoard
+	capturedPiece   Piece
+	repition        int32
 }
 
 type Board struct {
@@ -34,139 +34,106 @@ type Board struct {
 	CastlingRookSquare [CASTLING_RIGHT_NB]Square
 	CastlingPath       [CASTLING_RIGHT_NB]BitBoard
 	St                 *StateInfo
-	GamePly            int32
+	gamePly            int32
 	SideToMove         Color
 }
 
-func (board Board) pieces(pt PieceType) BitBoard {
-	return FileABB
-}
-
 func (board Board) piece_on(sq Square) Piece {
-	return Piece(KING)
+	return board.Board[sq]
 }
 
 func (board Board) side_to_move() Color {
 	return board.SideToMove
 }
 
-// func (board Board) set(fen String) ret {
-//many implementations, figure that out
-// }
+func (board Board) ep_square() Square {
+	return board.St.EpSquare
+}
 
-// func (board Board) fen() string {
+func (board Board) empty(s Square) bool {
+	return board.piece_on(s) == NO_PIECE
+}
 
-// }
+func (board Board) castling_rights(c Color) Castling_Rights {
+	return Castling_Rights(c) & Castling_Rights(board.St.CastlingRights)
+}
 
-// func (board Board) pieces() BitBoard {
-//many implementations, figure that out
-// }
+func (board Board) can_castle(cr Castling_Rights) bool {
+	return Castling_Rights(board.St.CastlingRights)&cr > 0
+}
 
-// func (board Board) piece_on(s Square) Piece {
-// }
+func (board Board) castling_rook_square(cr Color) Square {
+	return board.CastlingRookSquare[cr]
+}
 
-// func (board Board) ep_square() Square {
-// }
+func (board Board) checkers() BitBoard {
+	return board.St.checkersBB
+}
 
-// func (board Board) empty(s Square) Square {
-// }
+func (board Board) blockers_for_king(c Color) BitBoard {
+	return board.St.blockersForKing[c]
+}
 
-// func (board Board) castling_rights() Casting_Rights {
-// }
-// func (board Board) can_castle(cr Castling_Right) bool {
-// }
+func (board Board) pinners(c Color) BitBoard {
+	return board.St.pinners[c]
+}
 
-// func (board Board) castling_impeded() bool {
-// }
-
-// func (board Board) castling_rook_square() Square {
-// }
-
-// func (board Board) checkers() BitBoard {
-// }
-
-// func (board Board) blockers_for_king(c Color) BitBoard {
-// }
-
-// func (board Board) pinners() BitBoard {
-// }
-
-// func (board Board) attackrs_to(sq Square) BitBoard {
-//multiple impl
-// }
+func (board Board) check_squares(pt PieceType) BitBoard {
+	return board.St.checkSquares[pt]
+}
 
 func (board Board) attacks_by(c Color) BitBoard {
 	return FileABB
 }
 
-// func (board Board) update_slider_blocker()  {
-// }
+func (board Board) do_move(m Move, newSt *StateInfo) {}
 
-// func (board Board) legal(m Move) bool {
-// }
-// func (board Board) pseudo_legal(m Move) bool {
-// }
-// func (board Board) capture(m Move) bool {
-// }
-// func (board Board) capture_stage(m Move) bool {
-// }
-// func (board Board) gives_check(m Move) bool {
-// }
-// func (board Board) moved_piece() Piece {
-// }
-// func (board Board) captured_piece() Piece {
-// }
-
-func (board Board) do_move(m Move, newSt *StateInfo) {
+func (board Board) game_ply() int32 {
+	return board.gamePly
 }
 
-// func (board Board) do_move(m Move, newSt *StateInfo, gives_check bool) {
-// }
-// func (board Board) undo_move(m Move) ret {
-// }
-// func (board Board) do_null_move(newSt *StateInfo, tt *TranspositionTable) {
-// }
-// func (board Board) undo_null_move(){
-// }
-// func (board Board) game_ply() int32 {
-// }
-// func (board Board) side_to_move() Color {
-// }
-// func (board Board) is_draw() bool {
-// }
-// func (board Board) has_game_cycle() bool {
-// }
-// func (board Board) rule_50_count() int32 {
-// }
-// func (board Board) has_repeated() bool {
-// }
+func (board Board) rule_50_count() int32 {
+	return board.St.rule50
+}
 
-// func (board Board) non_pawn_material(c Color) Value {
-// multiple impl
-// }
+func (board Board) pawn_key() Key {
+	return board.St.pawn_Key
+}
 
-// func (board Board) put_piece(pc Piece, sq Square) {
-// }
-// func (board Board) remove_piece(sq Square) {
-// }
+func (board Board) material_key() Key {
+	return board.St.material_key
+}
 
-// func (board Board) set_castling_right(c Color, rfrom Square) {
-// }
-// func (board Board) set_state() {
-// }
-// func (board Board) set_check_info() {
-// }
+func (board Board) captured_piece() Piece {
+	return board.St.capturedPiece
+}
 
-// func (board Board) move_piece(from Square, to Square) {
-// }
+func (board Board) put_piece(p Piece, s Square) {
+	board.Board[s] = p
+	board.ByTypeBB[ALL_PIECES] |= board.ByTypeBB[p.piece_type()]
+	board.ByTypeBB[ALL_PIECES] |= BitBoard(s)
+	board.PieceCount[p]++
+	board.PieceCount[make_piece(Piece(ALL_PIECES), p.color())]++
+}
+func (board Board) remove_piece(p Piece, s Square) {
+	piece := board.Board[s]
+	board.ByTypeBB[ALL_PIECES] ^= BitBoard(s)
+	board.ByTypeBB[p.piece_type()] ^= BitBoard(s)
+	board.ByColorBB[p.color()] ^= BitBoard(s)
+	board.Board[s] = NO_PIECE
+	board.PieceCount[piece]--
+	board.PieceCount[make_piece(Piece(ALL_PIECES), p.color())]++
+}
+func (board Board) move_piece(from Square, to Square) {
+	piece := board.Board[from]
+	fromto := BitBoard(from | to)
+	board.ByTypeBB[piece.piece_type()] ^= fromto
+	board.ByColorBB[piece.color()] ^= fromto
+	board.ByTypeBB[ALL_PIECES] ^= fromto
+	board.Board[from] = NO_PIECE
+	board.Board[to] = piece
+}
 
-// func (board Board) do_castling() ret {
-//templates! watchout
-// }
+func (board Board) init() {
 
-// func (board Board) adjust_key(k Key) Key {
-// }
-// func (board Board) funcname() ret {
-// }
-// func (board Board) funcname() ret {
-// }
+}

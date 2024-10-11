@@ -3,7 +3,7 @@ package board
 type BitBoard uint64
 type Key uint64
 type Value int16
-type Color uint8
+type Color int8
 type Player struct {
 	Player Color
 }
@@ -14,7 +14,7 @@ const (
 	COLOR_NB
 )
 
-type Castling_Rights uint16
+type Castling_Rights int32
 type CastlingRights struct {
 	Castling_rights Castling_Rights
 }
@@ -252,4 +252,16 @@ func noneMove() Move {
 
 func (mv Move) is_ok() bool {
 	return nullMove().data != mv.data && noneMove().data != mv.data
+}
+
+func (p Piece) piece_type() PieceType {
+	return PieceType(p & 7)
+}
+
+func (p Piece) color() Color {
+	return Color(p >> 3)
+}
+
+func make_piece(p Piece, c Color) Piece {
+	return Piece(Piece((c << 3)) + p)
 }
