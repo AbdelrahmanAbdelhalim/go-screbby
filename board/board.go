@@ -1,7 +1,13 @@
 package board
 
-//Stateinfo struct stores information to restore a position object to its previous state when we
-//retract a move
+import (
+	"strconv"
+	"strings"
+)
+
+// Stateinfo struct stores information to restore a position object to its previous state when we
+// retract a move
+
 type StateInfo struct {
 
 	//Copied when making a move
@@ -36,6 +42,52 @@ type Board struct {
 	St                 *StateInfo
 	gamePly            int32
 	SideToMove         Color
+}
+
+func (board Board) get_sides_piecesbb(c Color) BitBoard {
+	return board.ByColorBB[c]
+}
+func (board Board) get_piecebb_by_type(pt PieceType) BitBoard {
+	return board.ByTypeBB[pt]
+}
+
+func (board Board) get_pieces_bb(pieces ...PieceType) BitBoard {
+	bb := BitBoard(0)
+	for _, pt := range pieces {
+		bb |= board.get_piecebb_by_type(pt)
+	}
+	return bb
+}
+
+func (board Board) get_typed_sides_pieces_bb(c Color, pieces ...PieceType) BitBoard {
+	return board.get_sides_piecesbb(c) & board.get_pieces_bb(pieces...)
+}
+
+func (board Board) get_piece_bb(pt PieceType, c Color) BitBoard {
+	return board.ByTypeBB[pt] & board.ByColorBB[c]
+}
+
+func (board Board) print_position() {
+	var builder strings.Builder
+	builder.WriteString("\n +---+---+---+---+---+---+---+---+\n")
+
+	for rank := RANK_8; rank >= RANK_1; rank-- {
+		for file := FILE_A; file <= FILE_H; file++ {
+			builder.WriteString(" | ")
+			builder.WriteString(piece_to_char(board.piece_on(make_square(file, rank))))
+		}
+		builder.WriteString(" | ")
+		builder.WriteString(strconv.Itoa(int(1 + rank)))
+		builder.WriteString(" | ")
+	}
+	builder.WriteString("   a   b   c   d   e   f   g   h\n")
+
+	//Probe TableBase and output results
+	//Print FEN
+}
+
+func (board *Board) set_position_from_fen(fen string, st *StateInfo) {
+
 }
 
 func (board Board) piece_on(sq Square) Piece {
@@ -111,15 +163,15 @@ func (board Board) captured_piece() Piece {
 func (board Board) put_piece(p Piece, s Square) {
 	board.Board[s] = p
 	board.ByTypeBB[ALL_PIECES] |= board.ByTypeBB[p.piece_type()]
-	board.ByTypeBB[ALL_PIECES] |= BitBoard(s)
+	board.ByTypeBB[ALL_PIECES] |= square_bb(s)
 	board.PieceCount[p]++
 	board.PieceCount[make_piece(Piece(ALL_PIECES), p.color())]++
 }
 func (board Board) remove_piece(p Piece, s Square) {
 	piece := board.Board[s]
-	board.ByTypeBB[ALL_PIECES] ^= BitBoard(s)
-	board.ByTypeBB[p.piece_type()] ^= BitBoard(s)
-	board.ByColorBB[p.color()] ^= BitBoard(s)
+	board.ByTypeBB[ALL_PIECES] ^= square_bb(s)
+	board.ByTypeBB[p.piece_type()] ^= square_bb(s)
+	board.ByColorBB[p.color()] ^= square_bb(s)
 	board.Board[s] = NO_PIECE
 	board.PieceCount[piece]--
 	board.PieceCount[make_piece(Piece(ALL_PIECES), p.color())]++

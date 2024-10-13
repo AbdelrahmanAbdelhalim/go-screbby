@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-//BitBoards For Each File
+// BitBoards For Each File
 const FileABB BitBoard = 0x0101010101010101
 const FileBBB BitBoard = FileABB << 1
 const FileCBB BitBoard = FileABB << 2
@@ -16,7 +16,7 @@ const FileFBB BitBoard = FileABB << 5
 const FileGBB BitBoard = FileABB << 6
 const FileHBB BitBoard = FileABB << 7
 
-//BitBoards for Each Rank
+// BitBoards for Each Rank
 const Rank1BB BitBoard = 0xFF
 const Rank2BB BitBoard = 0xFF << (8 * 1)
 const Rank3BB BitBoard = 0xFF << (8 * 2)
@@ -45,7 +45,7 @@ func printbb(b BitBoard) string {
 	return builder.String()
 }
 
-//Return BitBoard Representation of a Square
+// Return BitBoard Representation of a Square
 func square_bb(s Square) BitBoard {
 	var bb BitBoard = 1
 	return bb << s
@@ -62,7 +62,7 @@ func bitboard_xor_square(b BitBoard, s Square) BitBoard {
 	return b ^ square_bb(s)
 }
 
-//BitBoards for a file or rank
+// BitBoards for a file or rank
 func rank_bb(r Rank) BitBoard {
 	return Rank1BB << (8 * r)
 }
