@@ -1,4 +1,4 @@
-package board
+package engine
 
 import (
 	"math/bits"
@@ -7,6 +7,7 @@ import (
 )
 
 // BitBoards For Each File
+
 const FileABB BitBoard = 0x0101010101010101
 const FileBBB BitBoard = FileABB << 1
 const FileCBB BitBoard = FileABB << 2
@@ -120,4 +121,41 @@ func (bb BitBoard) msb() int {
 		return -1
 	}
 	return 63 - bits.LeadingZeros64(uint64(bb))
+}
+
+var RookTable [0x19000]BitBoard
+var BishopTable [0x1490]BitBoard
+
+type Magic struct {
+	mask    BitBoard
+	magic   BitBoard
+	attacks []BitBoard
+	shift   uint64
+}
+type Magics struct {
+	RookMagics   [SQUARE_NB]Magic
+	BishopMagics [SQUARE_NB]Magic
+}
+
+// todo: Optimize this
+func (m Magic) index(occupied BitBoard) uint64 {
+	//todo: implement haspext directive
+	lo := uint64(((occupied & m.mask) * m.magic) >> m.shift)
+	hi := uint64(occupied>>32) & uint64(m.magic>>32) >> m.shift
+	return (lo*uint64(m.magic) ^ hi*uint64(m.magic>>32)) >> m.shift
+}
+func init_magics() {
+
+}
+func attacks_bb(s Square, occupied BitBoard, pt PieceType, magics Magics) BitBoard {
+	switch pt {
+	case BISHOP:
+		return magics.BishopMagics[s].attacks[magics.BishopMagics[s].index(occupied)]
+
+	case ROOK:
+		return magics.BishopMagics[s].attacks[magics.BishopMagics[s].index(occupied)]
+
+	case QUEEN:
+		return magics.BishopMagics[s].attacks[magics.BishopMagics[s].index(occupied)]
+	}
 }

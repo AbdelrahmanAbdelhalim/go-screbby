@@ -1,4 +1,4 @@
-package types
+package engine
 
 type BitBoard uint64
 type Key uint64
@@ -157,6 +157,9 @@ const (
 	NORTH_WEST Direction = NORTH + WEST
 )
 
+const FILE_NB = 8
+const CASTLING_RIGHTS_NB = 16
+
 type File int32
 type Rank int32
 
@@ -240,6 +243,9 @@ func (mv Move) to_square() Square {
 
 func (mv Move) from_to_squares() (Square, Square) {
 	return mv.from_square(), mv.to_square()
+}
+
+func make_move_from_to(from Square, to Square) {
 }
 
 func nullMove() Move {
