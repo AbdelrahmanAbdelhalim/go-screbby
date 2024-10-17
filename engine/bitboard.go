@@ -66,6 +66,7 @@ func (bb BitBoard) msb() int {
 
 var RookTable [0x19000]BitBoard
 var BishopTable [0x1490]BitBoard
+var squareDistance [SQUARE_NB][SQUARE_NB]uint8
 
 type Magic struct {
 	mask    BitBoard
@@ -86,12 +87,16 @@ func (m Magic) index(occupied BitBoard) uint64 {
 	return (lo*uint64(m.magic) ^ hi*uint64(m.magic>>32)) >> m.shift
 }
 
+func distance(s1 Square, s2 Square) uint8 {
+	return squareDistance[s1][s2]
+}
+
 func init_magics(pt PieceType, table []BitBoard, magics []Magic) {
 	var seeds = [][]int32{{8977, 44560, 54343, 38998, 5731, 95205, 104912, 17020},
 		{728, 10316, 55013, 32803, 12281, 15100, 16645, 255}}
 	var occupancy [4096]BitBoard
 	var reference [4096]BitBoard
-	var edges, b BitBoard
+	var b BitBoard
 	var epoch = [4096]int32{}
 	var cnt, size int32
 
@@ -99,10 +104,19 @@ func init_magics(pt PieceType, table []BitBoard, magics []Magic) {
 		edges := ((Rank1BB | Rank8BB) & ^rank_bb(s.rank_of())) | ((FileABB | FileHBB) & ^file_bb(s.file_of()))
 		m := &magics[s]
 		m.mask = sliding_attacks(pt, s, 0) & ^edges
-		m.shift = uint64(64 - m.mask.popcount())
+		m.shift = uint64(64 - m.mask.popcount()) //todo: Take into account 32bit vs 64 bit
 
 		b = 0
 		size = 0
+		runonce := false
+		//todo: sort out has pext
+		for !runonce || (b != 0) {
+			occupancy[size] = b
+			reference[size] = sliding_attacks(pt, s, b)
+			size++
+			b = (b - m.mask) & m.mask
+			runonce = true
+		}
 	}
 }
 func attacks_bb(s Square, occupied BitBoard, pt PieceType, magics Magics) BitBoard {
@@ -150,4 +164,16 @@ func sliding_attacks(pt PieceType, sq Square, occupied BitBoard) BitBoard {
 		}
 	}
 	return attacks
+}
+
+func init_bitboards() {
+	for s1 := SQ_A1; s1 <= SQ_H8; s1++ {
+		for s2 := SQ_A1; s2 <= SQ_H8; s2++ {
+			ass := file_distance(s1, s2)
+			if ass < rank_distance(s1, s2) {
+				ass = rank_distance(s1, s2)
+			}
+			squareDistance[s1][s2] = ass
+		}
+	}
 }

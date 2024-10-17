@@ -298,6 +298,24 @@ func file_bb(f File) BitBoard {
 	return FileABB << f
 }
 
+func file_distance(s1 Square, s2 Square) uint8 {
+	ret := s1.file_of() - s2.file_of()
+	if ret < 0 {
+		return uint8(-ret)
+	} else {
+		return uint8(ret)
+	}
+}
+
+func rank_distance(s1 Square, s2 Square) uint8 {
+	ret := s1.rank_of() - s2.rank_of()
+	if ret < 0 {
+		return uint8(-ret)
+	} else {
+		return uint8(ret)
+	}
+}
+
 func (bb BitBoard) shift(d Direction) BitBoard {
 	switch d {
 	case NORTH:
