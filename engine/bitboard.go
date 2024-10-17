@@ -46,65 +46,6 @@ func printbb(b BitBoard) string {
 	return builder.String()
 }
 
-// Return BitBoard Representation of a Square
-func square_bb(s Square) BitBoard {
-	var bb BitBoard = 1
-	return bb << s
-}
-
-func bitboard_and_square(b BitBoard, s Square) BitBoard {
-	return b & square_bb(s)
-}
-
-func bitboard_or_square(b BitBoard, s Square) BitBoard {
-	return b | square_bb(s)
-}
-func bitboard_xor_square(b BitBoard, s Square) BitBoard {
-	return b ^ square_bb(s)
-}
-
-// BitBoards for a file or rank
-func rank_bb(r Rank) BitBoard {
-	return Rank1BB << (8 * r)
-}
-
-func file_bb(f File) BitBoard {
-	return FileABB << f
-}
-
-// Not sure if the compiler would optimize (a >> 1) << 8 to a << 7
-// Possibly needs optimization, more verbose atm to make it clear
-func (bb BitBoard) shift(d Direction) BitBoard {
-	switch d {
-	case NORTH:
-		return bb << 8
-	case SOUTH:
-		return bb >> 8
-	case EAST:
-		return (bb &^ FileHBB) << 1
-	case WEST:
-		return (bb &^ FileABB) >> 1
-	case NORTH_EAST:
-		return ((bb &^ FileHBB) << 1) << 8
-	case NORTH_WEST:
-		return ((bb &^ FileABB) >> 1) << 8
-	case SOUTH_EAST:
-		return (bb &^ FileHBB << 1) >> 8
-	case SOUTH_WEST:
-		return (bb &^ FileABB >> 1) >> 8
-	default:
-		return 0
-	}
-}
-
-func (bb BitBoard) shift_double_north() BitBoard {
-	return bb << 16
-}
-
-func (bb BitBoard) shift_double_south() BitBoard {
-	return bb >> 16
-}
-
 func (bb BitBoard) calc_pawn_attacks_bb(c Color) BitBoard {
 	if c == WHITE {
 		return bb.shift(NORTH_EAST) | bb.shift(NORTH_WEST)
@@ -144,8 +85,25 @@ func (m Magic) index(occupied BitBoard) uint64 {
 	hi := uint64(occupied>>32) & uint64(m.magic>>32) >> m.shift
 	return (lo*uint64(m.magic) ^ hi*uint64(m.magic>>32)) >> m.shift
 }
-func init_magics() {
 
+func init_magics(pt PieceType, table []BitBoard, magics []Magic) {
+	var seeds = [][]int32{{8977, 44560, 54343, 38998, 5731, 95205, 104912, 17020},
+		{728, 10316, 55013, 32803, 12281, 15100, 16645, 255}}
+	var occupancy [4096]BitBoard
+	var reference [4096]BitBoard
+	var edges, b BitBoard
+	var epoch = [4096]int32{}
+	var cnt, size int32
+
+	for s := SQ_A1; s <= SQ_H8; s++ {
+		edges := ((Rank1BB | Rank8BB) & ^rank_bb(s.rank_of())) | ((FileABB | FileHBB) & ^file_bb(s.file_of()))
+		m := &magics[s]
+		m.mask = sliding_attacks(pt, s, 0) & ^edges
+		m.shift = uint64(64 - m.mask.popcount())
+
+		b = 0
+		size = 0
+	}
 }
 func attacks_bb(s Square, occupied BitBoard, pt PieceType, magics Magics) BitBoard {
 	switch pt {
@@ -157,5 +115,39 @@ func attacks_bb(s Square, occupied BitBoard, pt PieceType, magics Magics) BitBoa
 
 	case QUEEN:
 		return magics.BishopMagics[s].attacks[magics.BishopMagics[s].index(occupied)]
+	default:
+		return BitBoard(0)
 	}
+}
+func safe_destination(s Square, d int) BitBoard {
+	var to Square = Square(int(s) + d)
+	if to.is_square_ok() && distance(s, to) <= 2 {
+		return square_bb(to)
+	} else {
+		return 0
+	}
+}
+
+func sliding_attacks(pt PieceType, sq Square, occupied BitBoard) BitBoard {
+	var attacks BitBoard = 0
+	var RookDirections = [4]Direction{NORTH, SOUTH, EAST, WEST}
+	var BishopDirection = [4]Direction{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST}
+	var dir *[4]Direction
+	if pt == ROOK {
+		dir = &RookDirections
+	} else {
+		dir = &BishopDirection
+	}
+
+	for _, d := range dir {
+		s := sq
+		for safe_destination(s, int(d)) != 0 {
+			s += Square(d)
+			attacks = bitboard_or_square(attacks, s)
+			if bitboard_and_square(occupied, s) > 0 {
+				break
+			}
+		}
+	}
+	return attacks
 }

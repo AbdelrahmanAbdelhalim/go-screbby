@@ -272,6 +272,64 @@ func make_piece(p Piece, c Color) Piece {
 	return Piece(Piece((c << 3)) + p)
 }
 
+// Return BitBoard Representation of a Square
+func square_bb(s Square) BitBoard {
+	var bb BitBoard = 1
+	return bb << s
+}
+
+func bitboard_and_square(b BitBoard, s Square) BitBoard {
+	return b & square_bb(s)
+}
+
+func bitboard_or_square(b BitBoard, s Square) BitBoard {
+	return b | square_bb(s)
+}
+func bitboard_xor_square(b BitBoard, s Square) BitBoard {
+	return b ^ square_bb(s)
+}
+
+// BitBoards for a file or rank
+func rank_bb(r Rank) BitBoard {
+	return Rank1BB << (8 * r)
+}
+
+func file_bb(f File) BitBoard {
+	return FileABB << f
+}
+
+func (bb BitBoard) shift(d Direction) BitBoard {
+	switch d {
+	case NORTH:
+		return bb << 8
+	case SOUTH:
+		return bb >> 8
+	case EAST:
+		return (bb &^ FileHBB) << 1
+	case WEST:
+		return (bb &^ FileABB) >> 1
+	case NORTH_EAST:
+		return ((bb &^ FileHBB) << 1) << 8
+	case NORTH_WEST:
+		return ((bb &^ FileABB) >> 1) << 8
+	case SOUTH_EAST:
+		return (bb &^ FileHBB << 1) >> 8
+	case SOUTH_WEST:
+		return (bb &^ FileABB >> 1) >> 8
+	default:
+		return 0
+	}
+}
+func (s Square) is_square_ok() bool {
+	return s >= SQ_A1 && s <= SQ_H8
+}
+func (bb BitBoard) shift_double_north() BitBoard {
+	return bb << 16
+}
+
+func (bb BitBoard) shift_double_south() BitBoard {
+	return bb >> 16
+}
 func piece_to_char(p Piece) string {
 	switch p {
 	case W_PAWN:
