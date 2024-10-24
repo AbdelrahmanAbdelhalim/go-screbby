@@ -27,6 +27,14 @@ const Rank6BB BitBoard = 0xFF << (8 * 5)
 const Rank7BB BitBoard = 0xFF << (8 * 6)
 const Rank8BB BitBoard = 0xFF << (8 * 7)
 
+var popCnt16 = make([]uint8, 65535)
+var pawnAttacks [COLOR_NB][SQUARE_NB]BitBoard
+var squareDistance [SQUARE_NB][SQUARE_NB]uint8
+var pseudoAttacks [PIECE_NB][SQUARE_NB]BitBoard
+var PawnAttacks [COLOR_NB][SQUARE_NB]BitBoard
+var lineBB [SQUARE_NB][SQUARE_NB]BitBoard
+var betweenBB [SQUARE_NB][SQUARE_NB]BitBoard
+
 func printbb(b BitBoard) string {
 	var builder strings.Builder
 	builder.WriteString("+---+---+---+---+---+---+---+---+\n")
@@ -66,7 +74,8 @@ func (bb BitBoard) msb() int {
 
 var RookTable [0x19000]BitBoard
 var BishopTable [0x1490]BitBoard
-var squareDistance [SQUARE_NB][SQUARE_NB]uint8
+var RookMagics [SQUARE_NB]Magic
+var BishopMagics [SQUARE_NB]Magic
 
 type Magic struct {
 	mask    BitBoard
@@ -117,18 +126,39 @@ func init_magics(pt PieceType, table []BitBoard, magics []Magic) {
 			b = (b - m.mask) & m.mask
 			runonce = true
 		}
+		rng := Init_prng(uint64(seeds[1][s.rank_of()])) //todo: adjust for 32 bit vs 64 bit
+
+		for i := 0; i < int(size); {
+			for m.magic = 0; ((m.magic * m.mask) >> 56).popcount() == 0; {
+				m.magic = BitBoard(rng.Sparse_rand())
+			}
+			for i := 0; i < int(size); i++ {
+				cnt++
+				idx := m.index(occupancy[i])
+				if epoch[idx] < cnt {
+					epoch[idx] = cnt
+					m.attacks[idx] = reference[i]
+				} else if m.attacks[idx] != reference[i] {
+					break
+				}
+			}
+		}
 	}
+
 }
-func attacks_bb(s Square, occupied BitBoard, pt PieceType, magics Magics) BitBoard {
+func attacks_bb_empty_board(s Square, pt PieceType) BitBoard {
+	return pseudoAttacks[pt][s]
+}
+func attacks_bb(s Square, occupied BitBoard, pt PieceType) BitBoard {
 	switch pt {
 	case BISHOP:
-		return magics.BishopMagics[s].attacks[magics.BishopMagics[s].index(occupied)]
+		return BishopMagics[s].attacks[BishopMagics[s].index(occupied)]
 
 	case ROOK:
-		return magics.BishopMagics[s].attacks[magics.BishopMagics[s].index(occupied)]
+		return RookMagics[s].attacks[RookMagics[s].index(occupied)]
 
 	case QUEEN:
-		return magics.BishopMagics[s].attacks[magics.BishopMagics[s].index(occupied)]
+		return attacks_bb(s, occupied, BISHOP) | attacks_bb(s, occupied, ROOK)
 	default:
 		return BitBoard(0)
 	}
@@ -167,6 +197,10 @@ func sliding_attacks(pt PieceType, sq Square, occupied BitBoard) BitBoard {
 }
 
 func init_bitboards() {
+	var i uint32 = 0
+	for ; i < (1 << 16); i++ {
+		popCnt16[i] = uint8(bits.OnesCount16(uint16(i))) //Might Blow up later "watch out"
+	}
 	for s1 := SQ_A1; s1 <= SQ_H8; s1++ {
 		for s2 := SQ_A1; s2 <= SQ_H8; s2++ {
 			ass := file_distance(s1, s2)
@@ -174,6 +208,30 @@ func init_bitboards() {
 				ass = rank_distance(s1, s2)
 			}
 			squareDistance[s1][s2] = ass
+		}
+	}
+	init_magics(ROOK, RookTable[:], RookMagics[:])
+	init_magics(BISHOP, BishopTable[:], BishopMagics[:])
+	for s1 := SQ_A1; s1 <= SQ_H8; s1++ {
+		PawnAttacks[WHITE][s1] = square_bb(s1).calc_pawn_attacks_bb(WHITE)
+		PawnAttacks[BLACK][s1] = square_bb(s1).calc_pawn_attacks_bb(BLACK)
+		for _, step := range []int{-9, -8, -7, -1, 1, 7, 8, 9} {
+			pseudoAttacks[KING][s1] |= safe_destination(s1, step)
+		}
+		for _, step := range []int{-17, -15, -10, -6, 6, 10, 15, 17} {
+			pseudoAttacks[KNIGHT][s1] |= safe_destination(s1, step)
+		}
+		pseudoAttacks[BISHOP][s1] = attacks_bb(s1, 0, BISHOP)
+		pseudoAttacks[ROOK][s1] = attacks_bb(s1, 0, ROOK)
+		pseudoAttacks[QUEEN][s1] = pseudoAttacks[BISHOP][s1] | pseudoAttacks[ROOK][s1]
+		for _, pt := range []PieceType{BISHOP, ROOK} {
+			for s2 := SQ_A1; s2 <= SQ_H8; s2++ {
+				if bitboard_and_square(pseudoAttacks[pt][s1], s2) != 0 {
+					lineBB[s1][s2] = bitboard_or_square(bitboard_or_square((attacks_bb(s1, 0, pt)&attacks_bb(s2, 0, pt)), s1), s2)
+					betweenBB[s1][s2] = (attacks_bb(s1, square_bb(s2), pt) & attacks_bb(s2, square_bb(s1), pt))
+				}
+				bitboard_oreq_square(&betweenBB[s1][s2], s2)
+			}
 		}
 	}
 }

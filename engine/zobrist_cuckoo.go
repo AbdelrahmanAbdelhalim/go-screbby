@@ -1,7 +1,5 @@
 package engine
 
-import "math/rand"
-
 type Zobrist struct {
 	psq           [PIECE_NB][SQUARE_NB]Key
 	enpassant     [FILE_NB]Key
@@ -20,23 +18,23 @@ var pieces = []Piece{
 
 // initialize zobrist tables for tt
 func initialize(z *Zobrist, c *Cuckoo) {
-	rand.Seed(1070372)
+	rand := Init_prng(1070372)
 	for _, pc := range pieces {
 		for s := SQ_A1; s <= SQ_H8; s++ {
-			z.psq[pc][s] = Key(rand.Uint64())
+			z.psq[pc][s] = Key(rand.Rand64())
 		}
 	}
 
 	for f := FILE_A; f <= FILE_H; f++ {
-		z.enpassant[f] = Key(rand.Uint64())
+		z.enpassant[f] = Key(rand.Rand64())
 	}
 
 	for cr := NO_CASTLING; cr <= ANY_CASTLING; cr++ {
-		z.castling[cr] = Key(rand.Uint64())
+		z.castling[cr] = Key(rand.Rand64())
 	}
 
-	z.side = Key(rand.Uint64())
-	z.noPawns = Key(rand.Uint64())
+	z.side = Key(rand.Rand64())
+	z.noPawns = Key(rand.Rand64())
 
 	for i, _ := range c.cuckoo {
 		c.cuckoo[i] = 0

@@ -288,6 +288,13 @@ func bitboard_or_square(b BitBoard, s Square) BitBoard {
 func bitboard_xor_square(b BitBoard, s Square) BitBoard {
 	return b ^ square_bb(s)
 }
+func bitboard_oreq_square(b *BitBoard, s Square) {
+	*b |= square_bb(s)
+}
+
+func bitboard_andeq_square(b *BitBoard, s Square) {
+	*b &= square_bb(s)
+}
 
 // BitBoards for a file or rank
 func rank_bb(r Rank) BitBoard {
