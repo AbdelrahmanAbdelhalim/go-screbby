@@ -44,6 +44,9 @@ type Board struct {
 	SideToMove         Color
 }
 
+var zobrist_st *Zobrist
+var cuckkoo_st *Cuckoo
+
 func (board Board) get_sides_piecesbb(c Color) BitBoard {
 	return board.ByColorBB[c]
 }
@@ -86,10 +89,50 @@ func (board Board) print_position() {
 	//Print FEN
 }
 
+//functions for cuckoo tables for repitition detection
+
+func H1(h Key) int {
+	return int(h & 0x1fff)
+}
+
+func H2(h Key) int {
+	return int((h >> 16) & 0x1fff)
+}
+
+func init_zobrist_cuckoo() {
+	zobrist_st, cuckoo_st := NewZobristCuckoo()
+}
+
+func (board *Board) do_move(m Move, newSt *StateInfo) {
+	k := board.St.key ^ zobrist_st.side
+	newSt.copy_from_old_st(*board.St)
+	newSt.Previous = board.St
+	board.St = newSt
+
+	board.gamePly++
+	board.St.rule50++
+	board.St.pliesFromNull++
+
+	var us Color = board.SideToMove
+	var them Color = ^us
+	var from Square = m.from_square()
+	var to Square = m.to_square()
+	var pc Piece = board.piece_on(from)
+	var captured Piece
+	if m.type_of() == EN_PASSANT {
+		captured = make_piece(PAWN, them)
+	} else {
+		board.piece_on(to)
+	}
+}
+
 func (board *Board) set_position_from_fen(fen string, st *StateInfo) {
 
 }
 
+func (st *StateInfo) copy_from_old_st(oldSt StateInfo) {
+
+}
 func (board Board) piece_on(sq Square) Piece {
 	return board.Board[sq]
 }
@@ -138,8 +181,6 @@ func (board Board) attacks_by(c Color) BitBoard {
 	return FileABB
 }
 
-func (board Board) do_move(m Move, newSt *StateInfo) {}
-
 func (board Board) game_ply() int32 {
 	return board.gamePly
 }
@@ -160,14 +201,14 @@ func (board Board) captured_piece() Piece {
 	return board.St.capturedPiece
 }
 
-func (board Board) put_piece(p Piece, s Square) {
+func (board *Board) put_piece(p Piece, s Square) {
 	board.Board[s] = p
 	board.ByTypeBB[ALL_PIECES] |= board.ByTypeBB[p.piece_type()]
 	board.ByTypeBB[ALL_PIECES] |= square_bb(s)
 	board.PieceCount[p]++
 	board.PieceCount[make_piece(Piece(ALL_PIECES), p.color())]++
 }
-func (board Board) remove_piece(p Piece, s Square) {
+func (board *Board) remove_piece(p Piece, s Square) {
 	piece := board.Board[s]
 	board.ByTypeBB[ALL_PIECES] ^= square_bb(s)
 	board.ByTypeBB[p.piece_type()] ^= square_bb(s)
@@ -176,7 +217,7 @@ func (board Board) remove_piece(p Piece, s Square) {
 	board.PieceCount[piece]--
 	board.PieceCount[make_piece(Piece(ALL_PIECES), p.color())]++
 }
-func (board Board) move_piece(from Square, to Square) {
+func (board *Board) move_piece(from Square, to Square) {
 	piece := board.Board[from]
 	fromto := BitBoard(from | to)
 	board.ByTypeBB[piece.piece_type()] ^= fromto
@@ -184,8 +225,4 @@ func (board Board) move_piece(from Square, to Square) {
 	board.ByTypeBB[ALL_PIECES] ^= fromto
 	board.Board[from] = NO_PIECE
 	board.Board[to] = piece
-}
-
-func (board Board) init() {
-
 }

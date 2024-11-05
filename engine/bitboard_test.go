@@ -210,3 +210,7 @@ func TestShiftBBSouthWest(t *testing.T) {
 		t.Error("Shift North West Failed, Review Output")
 	}
 }
+
+func Testmagics(t *testing.T) {
+
+}

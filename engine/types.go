@@ -21,10 +21,10 @@ type CastlingRights struct {
 
 const (
 	NO_CASTLING Castling_Rights = iota
-	WHITE_SHORT Castling_Rights = 1 << iota
-	WHITE_LONG
-	BLACK_SHORT
-	BLACK_LONG
+	WHITE_SHORT Castling_Rights = iota
+	WHITE_LONG  Castling_Rights = WHITE_SHORT << 1
+	BLACK_SHORT Castling_Rights = WHITE_SHORT << 2
+	BLACK_LONG  Castling_Rights = WHITE_SHORT << 3
 
 	KING_SIDE         Castling_Rights = WHITE_SHORT | BLACK_SHORT
 	QUEEN_SIDE        Castling_Rights = WHITE_LONG | BLACK_LONG
@@ -44,6 +44,13 @@ const (
 )
 
 type MoveType uint16
+
+const (
+	NORMAL     MoveType = iota
+	PROMOTION  MoveType = 1 << 14
+	EN_PASSANT MoveType = 2 << 14
+	CASTLING   MoveType = 3 << 14
+)
 
 // In a square, the first 3 bits indicate the file and the 3 bits after indicate the rank
 type Square int32
@@ -123,13 +130,6 @@ const (
 
 	SQ_ZERO   = 0
 	SQUARE_NB = 64
-)
-
-const (
-	NORMAL     uint16 = iota
-	PROMOTION  uint16 = 1 << 14
-	EN_PASSANT uint16 = 2 << 14
-	CASTLING   uint16 = 3 << 14
 )
 
 // A move needs 16 bits
@@ -245,6 +245,10 @@ func (mv Move) from_to_squares() (Square, Square) {
 	return mv.from_square(), mv.to_square()
 }
 
+func (mv Move) type_of() MoveType {
+	return MoveType(mv.data & (3 << 14))
+}
+
 func make_move_from_to(from Square, to Square) {
 }
 
@@ -268,8 +272,8 @@ func (p Piece) color() Color {
 	return Color(p >> 3)
 }
 
-func make_piece(p Piece, c Color) Piece {
-	return Piece(Piece((c << 3)) + p)
+func make_piece(p PieceType, c Color) Piece {
+	return Piece(Piece((c << 3)) + Piece(p))
 }
 
 // Return BitBoard Representation of a Square
