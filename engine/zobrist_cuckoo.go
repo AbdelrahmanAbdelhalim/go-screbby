@@ -8,7 +8,7 @@ type Zobrist struct {
 }
 type Cuckoo struct {
 	cuckoo     [8192]Key
-	cuckooMove [8192]Key
+	cuckooMove [8192]Move
 }
 
 var pieces = []Piece{

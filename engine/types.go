@@ -2,8 +2,18 @@ package engine
 
 type BitBoard uint64
 type Key uint64
-type Value int16
+type Value int
 type Color int8
+
+var VALUE_ZERO Value = 0
+var PawnValue Value = 200
+var KnightValue Value = 781
+var BishopValue Value = 825
+var RookValue Value = 1276
+var QueenValue Value = 2538
+
+var PieceValue = []Value{VALUE_ZERO, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, VALUE_ZERO, VALUE_ZERO, VALUE_ZERO, PawnValue, KnightValue, BishopValue, QueenValue, VALUE_ZERO, VALUE_ZERO}
+
 type Player struct {
 	Player Color
 }
@@ -130,6 +140,7 @@ const (
 
 	SQ_ZERO   = 0
 	SQUARE_NB = 64
+	SQ_NONE   = 64
 )
 
 // A move needs 16 bits
@@ -248,7 +259,13 @@ func (mv Move) from_to_squares() (Square, Square) {
 func (mv Move) type_of() MoveType {
 	return MoveType(mv.data & (3 << 14))
 }
+func (mv Move) promotion_type() PieceType {
+	return PieceType(PieceType(((mv.data >> 12) & 3)) + KNIGHT)
+}
 
+func relative_square(c Color, s Square) Square {
+	return Square(s ^ Square((c * 56)))
+}
 func make_move_from_to(from Square, to Square) {
 }
 
@@ -298,6 +315,14 @@ func bitboard_oreq_square(b *BitBoard, s Square) {
 
 func bitboard_andeq_square(b *BitBoard, s Square) {
 	*b &= square_bb(s)
+}
+
+func (c Color) pawn_push() Direction {
+	if c == WHITE {
+		return NORTH
+	} else {
+		return SOUTH
+	}
 }
 
 // BitBoards for a file or rank

@@ -146,7 +146,7 @@ func init_magics(pt PieceType, table []BitBoard, magics []Magic) {
 	}
 
 }
-func attacks_bb_empty_board(s Square, pt PieceType) BitBoard {
+func pseudo_attacks_bb(s Square, pt PieceType) BitBoard {
 	return pseudoAttacks[pt][s]
 }
 func attacks_bb(s Square, occupied BitBoard, pt PieceType) BitBoard {
@@ -194,6 +194,20 @@ func sliding_attacks(pt PieceType, sq Square, occupied BitBoard) BitBoard {
 		}
 	}
 	return attacks
+}
+func pawn_attacks_bb(c Color, s Square) BitBoard {
+	return pawnAttacks[c][s]
+}
+func between_bb(s1 Square, s2 Square) BitBoard {
+	return lineBB[s1][s2]
+}
+
+func line_bb(s1 Square, s2 Square) BitBoard {
+	return lineBB[s1][s2]
+}
+
+func aligned(s1 Square, s2 Square, s3 Square) bool {
+	return bitboard_and_square(line_bb(s1, s2), s3) != 0
 }
 
 func init_bitboards() {
